@@ -4,7 +4,7 @@ interface MatchupBoardProps {
   onAsk: (q: string) => void;
 }
 
-export const MatchupBoard = ({ onAsk }: MatchupBoardProps) => {
+export function MatchupBoard({ onAsk }: MatchupBoardProps) {
   const home = SPOTLIGHT_TEAMS.find((t) => t.abbr === "BOS")!;
   const away = SPOTLIGHT_TEAMS.find((t) => t.abbr === "DAL")!;
 
@@ -109,4 +109,4 @@ export const MatchupBoard = ({ onAsk }: MatchupBoardProps) => {
       </div>
     </aside>
   );
-};
+}

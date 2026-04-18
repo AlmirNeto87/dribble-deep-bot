@@ -12,7 +12,7 @@ const QUICK_PROMPTS = [
   { label: "Tracker de MVP", q: "Quem foi o MVP?" },
 ];
 
-export const ControlDeck = ({ onAsk, onReset }: ControlDeckProps) => {
+export function ControlDeck({ onAsk, onReset }: ControlDeckProps) {
   return (
     <aside className="hidden md:flex w-64 flex-shrink-0 border-r border-border flex-col bg-arena-panel/50 backdrop-blur-md">
       <div className="p-6 border-b border-border">
@@ -82,4 +82,4 @@ export const ControlDeck = ({ onAsk, onReset }: ControlDeckProps) => {
       </div>
     </aside>
   );
-};
+}
