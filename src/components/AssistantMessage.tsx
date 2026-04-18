@@ -7,7 +7,7 @@ interface AssistantMessageProps {
   streaming?: boolean;
 }
 
-export const AssistantMessage = ({ timestamp, content, streaming }: AssistantMessageProps) => {
+export function AssistantMessage({ timestamp, content, streaming }: AssistantMessageProps) {
   return (
     <div className="max-w-[75ch] animate-fade-up">
       <div className="flex items-center gap-2 mb-2">
@@ -46,4 +46,4 @@ export const AssistantMessage = ({ timestamp, content, streaming }: AssistantMes
       </div>
     </div>
   );
-};
+}

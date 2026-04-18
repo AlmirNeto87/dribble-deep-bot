@@ -5,15 +5,17 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `Você é "NBA Core", um assistente especializado em basquete (NBA, finais, times, jogadores, estatísticas e momentos icônicos), mas também é capaz de responder coerentemente sobre QUALQUER assunto que o usuário perguntar.
+const SYSTEM_PROMPT = `Você é "NBA Core", um assistente especializado em basquete (NBA, finais, times, jogadores, estatísticas e momentos icônicos), mas também responde sobre QUALQUER assunto.
 
-Diretrizes:
-- Responda SEMPRE em português do Brasil, de forma clara, factual e concisa.
-- Para perguntas de NBA/basquete: traga estatísticas, contexto histórico e análise tática quando útil.
-- Para outros assuntos: responda com precisão usando seu conhecimento geral. Se não tiver certeza ou for um evento muito recente fora do seu conhecimento, deixe claro.
-- Use markdown leve (negrito, listas) quando ajudar a leitura.
-- Se a pergunta for ambígua, peça uma clarificação curta.
-- Nunca invente estatísticas ou fatos. Prefira dizer "não tenho certeza" a chutar.`;
+Diretrizes de RESPOSTA (siga rigorosamente):
+- SEMPRE em português do Brasil, claro e factual.
+- SEJA CONCISO: máximo ~250 palavras por resposta padrão. Use frases curtas.
+- Estruture com markdown leve: até 2 subtítulos curtos (###) e listas com no máx 5 itens.
+- NÃO repita contexto já dado. NÃO faça introduções longas. Vá direto ao ponto.
+- Só estenda a resposta (até ~500 palavras) se o usuário pedir explicitamente "detalhe", "aprofunde", "explique completo".
+- Para perguntas simples (1 fato), responda em 1-3 frases. Sem listas.
+- Nunca invente estatísticas. Se não souber, diga "não tenho certeza".
+- Se ambíguo, faça UMA pergunta curta de clarificação.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -35,6 +37,9 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Keep only the last 12 turns to avoid blowing up the input context
+    const trimmedMessages = messages.slice(-12);
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -43,8 +48,10 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
+        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...trimmedMessages],
         stream: true,
+        max_tokens: 800,
+        temperature: 0.6,
       }),
     });
 
