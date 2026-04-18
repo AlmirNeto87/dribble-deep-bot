@@ -37,15 +37,15 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Keep only the last 12 turns to avoid blowing up the input context
+    const trimmedMessages = messages.slice(-12);
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
-      // Keep only the last 12 turns to avoid blowing up the input context
-      const trimmedMessages = messages.slice(-12);
-
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [{ role: "system", content: SYSTEM_PROMPT }, ...trimmedMessages],
