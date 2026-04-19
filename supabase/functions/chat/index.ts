@@ -104,19 +104,28 @@ Deno.serve(async (req) => {
       });
     }
 
+    const useLive = needsLiveSearch(validation.messages);
+    const sysPrompt = useLive ? SYSTEM_PROMPT_LIVE : SYSTEM_PROMPT;
+    console.log(`[chat] live_search=${useLive}`);
+
+    const requestBody: Record<string, unknown> = {
+      model: "google/gemini-2.5-flash",
+      messages: [{ role: "system", content: sysPrompt }, ...validation.messages],
+      stream: true,
+      max_tokens: 800,
+      temperature: 0.6,
+    };
+    if (useLive) {
+      requestBody.tools = [{ type: "google_search" }];
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...validation.messages],
-        stream: true,
-        max_tokens: 800,
-        temperature: 0.6,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
