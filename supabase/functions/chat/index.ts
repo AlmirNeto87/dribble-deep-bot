@@ -17,6 +17,31 @@ Diretrizes de RESPOSTA (siga rigorosamente):
 - Nunca invente estatísticas. Se não souber, diga "não tenho certeza".
 - Se ambíguo, faça UMA pergunta curta de clarificação.`;
 
+const SYSTEM_PROMPT_LIVE = `${SYSTEM_PROMPT}
+
+IMPORTANTE — Modo BUSCA AO VIVO ativado:
+- Você tem acesso a busca web em tempo real (Google Search).
+- Use os resultados para responder com dados ATUAIS (temporada 2025-26, jogos recentes, datas).
+- Cite brevemente a fonte (ex: "segundo NBA.com") quando usar dados ao vivo.
+- Se a busca não retornar nada relevante, diga "não encontrei dado atualizado".`;
+
+// Heurística: detecta perguntas que precisam de dados em tempo real.
+const LIVE_KEYWORDS = [
+  "hoje", "ontem", "amanhã", "agora", "atual", "atualmente", "esta semana", "essa semana",
+  "temporada atual", "2025-26", "2025/26", "25-26", "25/26", "2026",
+  "última partida", "ultima partida", "último jogo", "ultimo jogo", "próximo jogo", "proximo jogo",
+  "placar", "resultado de", "quem ganhou", "quem venceu", "está jogando", "esta jogando",
+  "rodada", "classificação", "classificacao", "standings", "líder", "lider da",
+  "lesionado", "machucado", "trade recente", "contratou", "dispensou",
+];
+
+function needsLiveSearch(messages: CleanMsg[]): boolean {
+  const last = messages[messages.length - 1];
+  if (!last || last.role !== "user") return false;
+  const text = last.content.toLowerCase();
+  return LIVE_KEYWORDS.some((k) => text.includes(k));
+}
+
 const MAX_MESSAGES = 12;
 const MAX_CONTENT_LENGTH = 4000;
 const ALLOWED_ROLES = new Set(["user", "assistant"]);
@@ -79,19 +104,28 @@ Deno.serve(async (req) => {
       });
     }
 
+    const useLive = needsLiveSearch(validation.messages);
+    const sysPrompt = useLive ? SYSTEM_PROMPT_LIVE : SYSTEM_PROMPT;
+    console.log(`[chat] live_search=${useLive}`);
+
+    const requestBody: Record<string, unknown> = {
+      model: "google/gemini-2.5-flash",
+      messages: [{ role: "system", content: sysPrompt }, ...validation.messages],
+      stream: true,
+      max_tokens: 800,
+      temperature: 0.6,
+    };
+    if (useLive) {
+      requestBody.tools = [{ type: "google_search" }];
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...validation.messages],
-        stream: true,
-        max_tokens: 800,
-        temperature: 0.6,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
