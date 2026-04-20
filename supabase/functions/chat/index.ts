@@ -110,14 +110,18 @@ Deno.serve(async (req) => {
     console.log(`[chat] live_search=${useLive}`);
 
     const requestBody: Record<string, unknown> = {
-      model: useLive ? "google/gemini-2.5-flash:online" : "google/gemini-2.5-flash",
+      model: useLive ? "google/gemini-3-flash-preview" : "google/gemini-2.5-flash",
       messages: [{ role: "system", content: sysPrompt }, ...validation.messages],
       stream: true,
       max_tokens: 800,
       temperature: 0.6,
     };
     if (useLive) {
-      requestBody.tools = [{ type: "openrouter:web_search" }];
+      requestBody.tools = [
+        { type: "openrouter:web_search" },
+        { type: "openrouter:datetime" },
+      ];
+      requestBody.tool_choice = "auto";
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
