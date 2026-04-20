@@ -20,8 +20,9 @@ Diretrizes de RESPOSTA (siga rigorosamente):
 const SYSTEM_PROMPT_LIVE = `${SYSTEM_PROMPT}
 
 IMPORTANTE — Modo BUSCA AO VIVO ativado:
-- Você tem acesso a busca web em tempo real (Google Search).
-- Use os resultados para responder com dados ATUAIS (temporada 2025-26, jogos recentes, datas).
+- Antes de responder, consulte a busca web para perguntas sobre temporada atual, jogos recentes, classificação, playoffs, lesões, trades e datas.
+- Não confie na sua memória interna para fatos atuais da NBA; priorize os resultados da busca.
+- Considere a data atual da conversa ao interpretar "temporada atual" e perguntas como "hoje", "agora" e "recente".
 - Cite brevemente a fonte (ex: "segundo NBA.com") quando usar dados ao vivo.
 - Se a busca não retornar nada relevante, diga "não encontrei dado atualizado".`;
 
@@ -109,14 +110,18 @@ Deno.serve(async (req) => {
     console.log(`[chat] live_search=${useLive}`);
 
     const requestBody: Record<string, unknown> = {
-      model: "google/gemini-2.5-flash",
+      model: useLive ? "google/gemini-3-flash-preview" : "google/gemini-2.5-flash",
       messages: [{ role: "system", content: sysPrompt }, ...validation.messages],
       stream: true,
       max_tokens: 800,
       temperature: 0.6,
     };
     if (useLive) {
-      requestBody.tools = [{ type: "google_search" }];
+      requestBody.tools = [
+        { type: "openrouter:web_search" },
+        { type: "openrouter:datetime" },
+      ];
+      requestBody.tool_choice = "auto";
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
