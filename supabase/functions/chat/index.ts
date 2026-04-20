@@ -20,11 +20,12 @@ Diretrizes de RESPOSTA (siga rigorosamente):
 const SYSTEM_PROMPT_LIVE = `${SYSTEM_PROMPT}
 
 IMPORTANTE — Modo BUSCA AO VIVO ativado:
-- Antes de responder, consulte a busca web para perguntas sobre temporada atual, jogos recentes, classificação, playoffs, lesões, trades e datas.
-- Não confie na sua memória interna para fatos atuais da NBA; priorize os resultados da busca.
-- Considere a data atual da conversa ao interpretar "temporada atual" e perguntas como "hoje", "agora" e "recente".
-- Cite brevemente a fonte (ex: "segundo NBA.com") quando usar dados ao vivo.
-- Se a busca não retornar nada relevante, diga "não encontrei dado atualizado".`;
+- VOCÊ DEVE OBRIGATORIAMENTE chamar a ferramenta openrouter:web_search ANTES de responder.
+- NUNCA responda sobre dados atuais (classificação, playoffs, jogos, lesões, trades) usando memória interna — sempre busque.
+- Sua memória pode estar desatualizada em mais de um ano; só dê fatos atuais com base nos resultados da busca.
+- Use a data atual fornecida no prompt para interpretar "hoje", "agora", "temporada atual".
+- Cite brevemente a fonte usada (ex: "segundo NBA.com" ou "ESPN").
+- Se a busca não retornar nada relevante, diga "não encontrei dado atualizado" — não invente.`;
 
 // Heurística: detecta perguntas que precisam de dados em tempo real.
 const LIVE_KEYWORDS = [
@@ -106,7 +107,17 @@ Deno.serve(async (req) => {
     }
 
     const useLive = needsLiveSearch(validation.messages);
-    const sysPrompt = useLive ? SYSTEM_PROMPT_LIVE : SYSTEM_PROMPT;
+    const today = new Date().toLocaleDateString("pt-BR", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      timeZone: "America/Sao_Paulo",
+    });
+    const dateLine = `Data atual (referência): ${today}.`;
+    const sysPrompt = useLive
+      ? `${SYSTEM_PROMPT_LIVE}\n\n${dateLine}`
+      : `${SYSTEM_PROMPT}\n\n${dateLine}`;
     console.log(`[chat] live_search=${useLive}`);
 
     const requestBody: Record<string, unknown> = {
@@ -121,7 +132,8 @@ Deno.serve(async (req) => {
         { type: "openrouter:web_search" },
         { type: "openrouter:datetime" },
       ];
-      requestBody.tool_choice = "auto";
+      // Força o modelo a chamar a busca web antes de responder.
+      requestBody.tool_choice = { type: "openrouter:web_search" };
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
